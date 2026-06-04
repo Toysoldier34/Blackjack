@@ -1,0 +1,104 @@
+Blackjack
+
+
+Core Features
+-Dealing Cards
+-Identifying win/lose conditions
+    -All players bust = Lose
+    -Player has higher score than Dealer = Win
+    -Dealer busts while players remain = Win
+-Handling Player actions
+    -Hit
+        -Take another card
+    -Stay
+        -Keep current cards and end turn
+    -Double Down (Optional)
+        -Doubles Bet, takes one final card, then stays
+    -Split (Optional)
+        -If cards are a matching pair
+            -Split into two hands
+            -Place a second equal bet on the new hand
+-Handling the value of Aces
+
+
+Optional Features
+-Betting
+    -Place bet Input
+    -Track Player money
+    -Calculate winnings
+    -Insurance bet
+        -Optional side bet
+        -Offered only when dealer's face-up card is an Ace
+        -Place bet equal to half of initial bet
+            -Paid 2:1 if dealer's face down card is value 10 (Blackjack for dealer)
+        -Outcome is separate from main hand outcome
+-Splitting
+-Multiplayer
+    -Track current player turn
+    -Track player money
+-Rules Explanation
+    -Hover or click for a pop up of rules
+
+
+Tasks
+-Make Cards
+-Make Deck of Cards
+    -Draw pile
+        -Request more cards when empty
+    -Discard pile
+        -Shuffle Deck when new draw pile requested
+
+
+UI
+-Deck
+    -Draw pile
+        -Show back of cards
+    -Discard pile
+        -Show last used cards
+-Cards
+    -Front of Cards
+        -Number
+        -Suit
+    -Back of Cards
+        -Solid pattern of diagonal stripes
+    -Possible card flip animation
+    -Possible cards dealt animation
+-Animation/notification that deck is shuffling
+-Notification/display of what is happening and round end results
+-Background of Play Area slowly scrolling pattern
+-Input for bet amount
+-Have large monospaced text as buttons
+-Buttons Required
+    -New Game
+    -Hit
+    -Stay
+    -Double Down
+    -Split
+    -Rules Explanation
+
+
+Game Rules
+-52 Cards
+-Card values
+    -Face Card = 10
+    -Ace = 1 or 11
+    -Number Cards = Number
+-Game Progression
+    -Initial bets are placed
+    -Cards are dealt
+        -Players receive two cards face-up
+        -Dealer receives one card face-up and one face-Down
+    -Player Turn Actions
+        -Hit or Split to continue play
+        -Double Down or Stay to end turn
+    -Dealer Turn
+        -Reveal face down card
+        -Dealer must Hit until reaching 17 or higher
+        -Dealer busts by going over 21 
+            -All remaining players 21 and under win
+    -Betting Payouts
+        -Normal Win paid 1:1
+        -Blackjack (Ace + value 10) paid 3:2
+        -Push (tie) paid bet returned
+        -Lose dealer collects bet
+

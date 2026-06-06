@@ -23,7 +23,7 @@ Core Features
 
 Optional Features
 -Betting
-    -Place bet Input
+    -Place bet Input and validate
     -Track Player money
     -Calculate winnings
     -Insurance bet
@@ -42,6 +42,9 @@ Optional Features
 
 Tasks
 -Make Cards
+    -Suit
+    -Value Number/Letter
+    -Score value of card
 -Make Deck of Cards
     -Draw pile
         -Request more cards when empty
@@ -49,16 +52,34 @@ Tasks
         -Shuffle Deck when new draw pile requested
 
 
+Game State
+-Active Game
+-Player total money
+-Player current bet
+-Player cards in hand
+-Dealer or Player action
+-Current player turn
+-Cards in Source Deck (All cards unshuffled to pull from)
+-Cards in Draw Deck
+-Cards in Discard Deck
+
+
 UI
 -Deck
     -Draw pile
         -Show back of cards
+        -Display deck size
     -Discard pile
         -Show last used cards
+        -Display deck size
 -Cards
     -Front of Cards
-        -Number
+        -Value (Number)
         -Suit
+            -♠
+            -♥
+            -♣
+            -♦
     -Back of Cards
         -Solid pattern of diagonal stripes
     -Possible card flip animation

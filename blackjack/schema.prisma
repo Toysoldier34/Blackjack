@@ -1,4 +1,5 @@
 // wasp db migrate-dev
+// wasp db studio
 
 datasource db {
   provider = "sqlite"
@@ -32,6 +33,7 @@ model Card {
   score    Int
   deck     Deck?   @relation("DeckCards", fields: [deckId], references: [id])
   deckId   Int?    
+  deckOrder Int?
   dealer   Dealer? @relation("DealerHand", fields: [dealerId], references: [id])
   dealerId Int?    
   player   Player? @relation("PlayerHand", fields: [playerId], references: [id])

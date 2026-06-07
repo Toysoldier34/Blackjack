@@ -8,7 +8,45 @@ app blackjack {
   ]
 }
 
+// Routes
 route RootRoute { path: "/", to: MainPage }
 page MainPage {
   component: import { MainPage } from "@src/MainPage"
+}
+
+// Queries
+query getCards {
+  fn: import { getCards } from "@src/queries",
+  entities: [Card]
+}
+
+query getDecks {
+  fn: import { getDecks } from "@src/queries",
+  entities: [Deck, Card]
+}
+
+// Actions
+action createDeck {
+  fn: import { createDeck } from "@src/actions",
+  entities: [Deck]
+}
+
+action updateDeck {
+  fn: import { updateDeck } from "@src/actions",
+  entities: [Deck]
+}
+
+action createCard {
+  fn: import { createCard } from "@src/actions",
+  entities: [Card]
+}
+
+action updateCardDeckOrder {
+  fn: import { updateCardDeckOrder } from "@src/actions",
+  entities: [Card]
+}
+
+action reassignCardDeck {
+  fn: import { reassignCardDeck } from "@src/actions",
+  entities: [Card]
 }

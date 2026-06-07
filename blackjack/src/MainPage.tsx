@@ -6,68 +6,79 @@ import { getDecks, updateDeck, getCards, updateCardDeckOrder, reassignCardDeck, 
 import { createDeck, createCard } from "wasp/client/operations";
 import { cardList } from "./cardList";
 
+
+
 export function MainPage() {
-  //const { data: cards, isLoading, error } = useQuery(getCards);
-  const { data: decks, isLoading, error } = useQuery(getDecks);
-  //const testDeck: Deck = decks ? decks[0] : { id: 0, name: "Test Deck" };
-  console.log(decks)
-  
   const [drawDeckRef, setDrawDeckRef] = useState(0);
   const [discardDeckRef, setDiscardDeckRef] = useState(0);
+  const [playerDeckRef, setPlayerDeckRef] = useState(0);
+  const [dealerDeckRef, setDealerDeckRef] = useState(0);
+  const { data: decks, isLoading, error } = useQuery(getDecks);
 
+  const drawDeck = decks?.find((deck) => deck.id === drawDeckRef);
+  const discardDeck = decks?.find((deck) => deck.id === discardDeckRef);
+  const playerDeck = decks?.find((deck) => deck.id === playerDeckRef);
+  const dealerDeck = decks?.find((deck) => deck.id === dealerDeckRef);
 
   const handleNewGame = async () => {
-    const tempCards: Card[] = [];
-    try {
-      for (const card of cardList) {
-        tempCards.push(await createCard({ suit: card.suit, value: card.value, score: card.score }));
-      }
-    } catch (error) {
-      console.error("Error creating card:", error);
-      alert("Failed to create card.");
-    }
-    const tempDrawDeckRef = await createDeck({ name: "drawDeck", cards: tempCards });
-    setDrawDeckRef(tempDrawDeckRef.id);
-    const tempDiscardDeckRef = await createDeck({ name: "discardDeck", cards: [] });
-    setDiscardDeckRef(tempDiscardDeckRef.id);
-    const shuffledCards = shuffle(tempCards);
-    for (const card of shuffledCards) {
-      //console.log(`Card: ${card.value} of ${card.suit} (Score: ${card.score})`);
-      updateCardDeckOrder({ id: card.id, deckOrder: shuffledCards.indexOf(card) });
-    }
+    // Initialize cards
+    const tempCards = await initializeCards();
+    // Initialize decks and shuffle draw deck
+    await initializeDecks(tempCards, setDrawDeckRef, setDiscardDeckRef, setPlayerDeckRef, setDealerDeckRef);
+
   };
 
   const handleDrawToDiscard = async () => {
-    const drawDeck = decks?.find((deck) => deck.id === drawDeckRef);
-    const discardDeck = decks?.find((deck) => deck.id === discardDeckRef);
     if (drawDeck && discardDeck) {
       if (drawDeck.cards.length > 0) {
-        const topCard = drawDeck!.cards.find((card) => card.deckOrder === drawDeck!.cards.length - 1);
-        console.log(`Drawing Card: ${topCard?.value} of ${topCard?.suit} (Score: ${topCard?.score}) Order: ${topCard?.deckOrder}`);
-        
+        const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);        
         await reassignCardDeck({
           id: topCard!.id,
           deckId: discardDeckRef,
-          deckOrder: discardDeck!.cards.length
+          deckOrder: discardDeck.cards.length
         });
       } else {
-        await restockDrawDeck(drawDeck, discardDeck);
-
+        await restockDrawDeck();
       }
     }
+  }
 
-    // });
-    // await updateCardDeckOrder({ 
-    //   id: topCard!.id,
-    //   deckOrder: 0, //TODO: change from 0 to check new order number
-    //   //deckOrder: decks?.find((deck) => deck.id === discardDeckRef)?.cards.length || 0 
-    // });
+  const drawToDeck = async (destinationDeck: DeckWithCards) => {
+    if (drawDeck && destinationDeck) {
+      if (drawDeck.cards.length == 1) {
+        const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);        
+        await reassignCardDeck({
+          id: topCard!.id,
+          deckId: destinationDeck.id,
+          deckOrder: destinationDeck.cards.length
+        });
+        restockDrawDeck();
+      } else if (drawDeck.cards.length > 1) {
+        const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);        
+        await reassignCardDeck({
+          id: topCard!.id,
+          deckId: destinationDeck.id,
+          deckOrder: destinationDeck.cards.length
+        });
+      } else if (drawDeck.cards.length == 0) {
+        console.log("drawDeck empty");
+        await restockDrawDeck();
+      }
+    }
+  }
+
+  const restockDrawDeck = async () =>{
+    const shuffledCards = shuffle(discardDeck!.cards);
+    for (const card of shuffledCards) {
+      await reassignCardDeck({
+        id: card.id,
+        deckId: drawDeck!.id,
+        deckOrder: shuffledCards.indexOf(card),
+      });
+    }
   }
 
 
-
-
-//{decks && <CardsList cards={decks[0]?.cards} />}
   return (
     <main className="container">
       <h2 className="title">Welcome to Blackjack!</h2>
@@ -78,26 +89,39 @@ export function MainPage() {
         <div className="button button-filled" onClick={handleDrawToDiscard}>
           Draw to Discard
         </div>
+        <div className="button button-filled" onClick={() => drawToDeck(playerDeck!)}>
+          Draw to Player
+        </div>
+        <div className="button button-filled" onClick={() => drawToDeck(dealerDeck!)}>
+          Draw to Dealer
+        </div>
       </div>
       <div className="flex gap-3">
+        {isLoading && "Loading..."}
+        {error && "Error loading decks: " + error}
         <div className="content border">
-          {decks && decks[decks.length-1]?.name}
-          {decks && <CardsList cards={decks[decks.length-1]?.cards} />}
-          {isLoading && "Loading..."}
-          {error && "Error loading decks: " + error}
+          {drawDeck && drawDeck.name}
+          {drawDeck && <CardsList cards={drawDeck.cards} />}
         </div>
         <div className="content border">
-          {decks && decks[decks.length-2]?.name}
-          {decks && <CardsList cards={decks[decks.length-2]?.cards} />}
-          {isLoading && "Loading..."}
-          {error && "Error loading decks: " + error}
+          {discardDeck && discardDeck.name}
+          {discardDeck && <CardsList cards={discardDeck.cards} />}
+        </div>
+        <div className="content border">
+          {playerDeck && playerDeck.name}
+          {playerDeck && <CardsList cards={playerDeck.cards} />}
+        </div>
+        <div className="content border">
+          {dealerDeck && dealerDeck.name}
+          {dealerDeck && <CardsList cards={dealerDeck.cards} />}
         </div>
       </div>
       
     </main>
   );
-
 }
+
+
 
 const CardsList = ({ cards }: { cards: Card[] }) => {
   if (!cards?.length) return <div>No cards found.</div>;
@@ -122,13 +146,38 @@ function shuffle<Card>(cards: Card[]): Card[] {
   return shuffled;
 }
 
-const restockDrawDeck = async (drawDeck: DeckWithCards, discardDeck: DeckWithCards) =>{
-  const shuffledCards = shuffle(discardDeck.cards);
+const initializeCards = async () => {
+  const tempCards: Card[] = [];
+  try {
+    for (const card of cardList) {
+      tempCards.push(await createCard({ suit: card.suit, value: card.value, score: card.score }));
+    }
+  } catch (error) {
+    console.error("Error creating card:", error);
+    alert("Failed to create card.");
+  }
+  return tempCards;
+}
+
+const initializeDecks = async (
+    tempCards: Card[],
+    setDrawDeckRef: React.Dispatch<React.SetStateAction<number>>,
+    setDiscardDeckRef: React.Dispatch<React.SetStateAction<number>>,
+    setPlayerDeckRef: React.Dispatch<React.SetStateAction<number>>,
+    setDealerDeckRef: React.Dispatch<React.SetStateAction<number>>,
+  ): Promise<void> => {
+  const tempDrawDeckRef = await createDeck({ name: "drawDeck", cards: tempCards });
+  setDrawDeckRef(tempDrawDeckRef.id);
+  const tempDiscardDeckRef = await createDeck({ name: "discardDeck", cards: [] });
+  setDiscardDeckRef(tempDiscardDeckRef.id);
+  const tempPlayerDeckRef = await createDeck({ name: "playerDeck", cards: [] });
+  setPlayerDeckRef(tempPlayerDeckRef.id);
+  const tempDealerDeckRef = await createDeck({ name: "dealerDeck", cards: [] });
+  setDealerDeckRef(tempDealerDeckRef.id);
+  // Shuffle cards in draw deck
+  const shuffledCards = shuffle(tempCards);
   for (const card of shuffledCards) {
-    await reassignCardDeck({
-      id: card.id,
-      deckId: drawDeck.id,
-      deckOrder: shuffledCards.indexOf(card),
-    });
+    updateCardDeckOrder({ id: card.id, deckOrder: shuffledCards.indexOf(card) });
   }
 }
+

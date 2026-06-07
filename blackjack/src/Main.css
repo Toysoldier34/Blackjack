@@ -18,13 +18,11 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
 }
 
 .container {
   margin: 3rem 3rem 10rem 3rem;
-  max-width: 726px;
   display: flex;
   flex-direction: column;
   justify-content: center;

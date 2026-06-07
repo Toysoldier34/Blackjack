@@ -13,7 +13,6 @@ export function MainPage() {
   console.log(decks)
   
   const [drawDeckRef, setDrawDeckRef] = useState(0);
-  //const [discardDeckRef, setDiscardDeckRef] = useState({ id: 0, name: "Unnamed Deck" });
   const [discardDeckRef, setDiscardDeckRef] = useState(0);
 
 
@@ -52,7 +51,6 @@ export function MainPage() {
           deckOrder: discardDeck!.cards.length
         });
       } else {
-        // TODO: shuffle discard back into draw deck
         await restockDrawDeck(drawDeck, discardDeck);
 
       }
@@ -73,20 +71,6 @@ export function MainPage() {
   return (
     <main className="container">
       <h2 className="title">Welcome to Blackjack!</h2>
-      <div style={{ display: 'flex', gap: '16px' }}>
-        <div className="content">
-          {decks && decks[decks.length-1]?.name}
-          {decks && <CardsList cards={decks[decks.length-1]?.cards} />}
-          {isLoading && "Loading..."}
-          {error && "Error loading decks: " + error}
-        </div>
-        <div className="content">
-          {decks && decks[decks.length-2]?.name}
-          {decks && <CardsList cards={decks[decks.length-2]?.cards} />}
-          {isLoading && "Loading..."}
-          {error && "Error loading decks: " + error}
-        </div>
-      </div>
       <div className="buttons">
         <div className="button button-filled" onClick={handleNewGame}>
           New Game
@@ -95,6 +79,21 @@ export function MainPage() {
           Draw to Discard
         </div>
       </div>
+      <div className="flex gap-3">
+        <div className="content border">
+          {decks && decks[decks.length-1]?.name}
+          {decks && <CardsList cards={decks[decks.length-1]?.cards} />}
+          {isLoading && "Loading..."}
+          {error && "Error loading decks: " + error}
+        </div>
+        <div className="content border">
+          {decks && decks[decks.length-2]?.name}
+          {decks && <CardsList cards={decks[decks.length-2]?.cards} />}
+          {isLoading && "Loading..."}
+          {error && "Error loading decks: " + error}
+        </div>
+      </div>
+      
     </main>
   );
 

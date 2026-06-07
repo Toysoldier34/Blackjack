@@ -21,8 +21,6 @@ model Game {
   drawDeckId    Int      @unique 
   discardDeck   Deck     @relation("DiscardDeck", fields: [discardDeckId], references: [id])
   discardDeckId Int      @unique 
-  dealer        Dealer   @relation("DealerGame", fields: [dealerId], references: [id])
-  dealerId      Int      @unique 
   players       Player[] @relation("GamePlayers")
 }
 
@@ -33,11 +31,7 @@ model Card {
   score    Int
   deck     Deck?   @relation("DeckCards", fields: [deckId], references: [id])
   deckId   Int?    
-  deckOrder Int?
-  dealer   Dealer? @relation("DealerHand", fields: [dealerId], references: [id])
-  dealerId Int?    
-  player   Player? @relation("PlayerHand", fields: [playerId], references: [id])
-  playerId Int?    
+  deckOrder Int? 
 }
 
 model Deck {
@@ -49,16 +43,9 @@ model Deck {
   discardDeckGame Game? @relation("DiscardDeck")
 }
 
-model Dealer {
-  id     Int    @id @default(autoincrement())
-  hand   Card[] @relation("DealerHand")
-  game   Game?  @relation("DealerGame")
-}
-
 model Player {
   id     Int    @id @default(autoincrement())
   name   String
-  hand   Card[] @relation("PlayerHand")
   bet    Int
   money  Int
   game   Game   @relation("GamePlayers", fields: [gameId], references: [id])

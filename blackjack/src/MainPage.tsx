@@ -41,16 +41,22 @@ export function MainPage() {
   const handleDrawToDiscard = async () => {
     const drawDeck = decks?.find((deck) => deck.id === drawDeckRef);
     const discardDeck = decks?.find((deck) => deck.id === discardDeckRef);
-    const topCard = drawDeck!.cards.find((card) => card.deckOrder === drawDeck!.cards.length - 1);
-    console.log(`Drawing Card: ${topCard?.value} of ${topCard?.suit} (Score: ${topCard?.score}) Order: ${topCard?.deckOrder}`);
-    await reassignCardDeck({
-      id: topCard!.id,
-      deckId: discardDeckRef,
-      deckOrder: discardDeck!.cards.length
-    });
-    // await updateDeck({
-    //   id: drawDeckRef,
+    if (drawDeck && discardDeck) {
+      if (drawDeck.cards.length > 0) {
+        const topCard = drawDeck!.cards.find((card) => card.deckOrder === drawDeck!.cards.length - 1);
+        console.log(`Drawing Card: ${topCard?.value} of ${topCard?.suit} (Score: ${topCard?.score}) Order: ${topCard?.deckOrder}`);
+        
+        await reassignCardDeck({
+          id: topCard!.id,
+          deckId: discardDeckRef,
+          deckOrder: discardDeck!.cards.length
+        });
+      } else {
+        // TODO: shuffle discard back into draw deck
+        await restockDrawDeck(drawDeck, discardDeck);
 
+      }
+    }
 
     // });
     // await updateCardDeckOrder({ 
@@ -115,4 +121,15 @@ function shuffle<Card>(cards: Card[]): Card[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;
+}
+
+const restockDrawDeck = async (drawDeck: DeckWithCards, discardDeck: DeckWithCards) =>{
+  const shuffledCards = shuffle(discardDeck.cards);
+  for (const card of shuffledCards) {
+    await reassignCardDeck({
+      id: card.id,
+      deckId: drawDeck.id,
+      deckOrder: shuffledCards.indexOf(card),
+    });
+  }
 }

@@ -45,22 +45,15 @@ export function MainPage() {
 
   const drawToDeck = async (destinationDeck: DeckWithCards) => {
     if (drawDeck && destinationDeck) {
-      if (drawDeck.cards.length == 1) {
-        const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);        
+      if (drawDeck.cards.length > 0) {
+        const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);
         await reassignCardDeck({
           id: topCard!.id,
           deckId: destinationDeck.id,
           deckOrder: destinationDeck.cards.length
         });
-        restockDrawDeck();
-      } else if (drawDeck.cards.length > 1) {
-        const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);        
-        await reassignCardDeck({
-          id: topCard!.id,
-          deckId: destinationDeck.id,
-          deckOrder: destinationDeck.cards.length
-        });
-      } else if (drawDeck.cards.length == 0) {
+        if (drawDeck.cards.length == 1) restockDrawDeck();
+      } else {
         console.log("drawDeck empty");
         await restockDrawDeck();
       }

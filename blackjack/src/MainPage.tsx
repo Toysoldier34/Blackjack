@@ -14,6 +14,7 @@ export function MainPage() {
   const [playerDeckRef, setPlayerDeckRef] = useState(0);
   const [dealerDeckRef, setDealerDeckRef] = useState(0);
   const newGameSetUp = useRef(false);
+  const waitingOnDrawDeck = useRef(false);
   const { data: decks, isLoading, error } = useQuery(getDecks);
 
   const drawDeck = decks?.find((deck) => deck.id === drawDeckRef);
@@ -29,6 +30,21 @@ export function MainPage() {
       }
     }
   }, [drawDeck]);
+
+  useEffect(() => { 
+    if (waitingOnDrawDeck.current) {
+      if (
+        playerDeck && playerDeck.cards.length == 0 &&
+        dealerDeck && dealerDeck.cards.length == 0 &&
+        drawDeck && drawDeck.cards.length > 0 && 
+        discardDeck && discardDeck.cards.length == 0
+      ) {
+        console.log("Initializing Hands")
+        initializeHands();
+        waitingOnDrawDeck.current = false;
+      }
+    }
+  }, [drawDeck, discardDeck]);
 
   const handleNewGame = async () => {
     // Initialize cards
@@ -54,29 +70,31 @@ export function MainPage() {
   }
 
   const initializeHands = async () => {
-    if (playerDeck && dealerDeck && drawDeck && drawDeck.cards.length > 0) {
-      if (drawDeck.cards.length > 3) {
-        await reassignCardDeck({
-          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1)!.id,
-          deckId: playerDeck.id,
-          deckOrder: 0
-        });
-        await reassignCardDeck({
-          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 2)!.id,
-          deckId: playerDeck.id,
-          deckOrder: 1
-        });
-        await reassignCardDeck({
-          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 3)!.id,
-          deckId: dealerDeck.id,
-          deckOrder: 0
-        });
-        await reassignCardDeck({
-          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 4)!.id,
-          deckId: dealerDeck.id,
-          deckOrder: 1
-        });
-      }
+    if (drawDeck && drawDeck.cards.length < 4) { 
+      restockDrawDeck(); 
+      waitingOnDrawDeck.current = true;
+    }
+    if (playerDeck && dealerDeck && drawDeck && drawDeck.cards.length > 3) {
+      await reassignCardDeck({
+        id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1)!.id,
+        deckId: playerDeck.id,
+        deckOrder: 0
+      });
+      await reassignCardDeck({
+        id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 2)!.id,
+        deckId: playerDeck.id,
+        deckOrder: 1
+      });
+      await reassignCardDeck({
+        id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 3)!.id,
+        deckId: dealerDeck.id,
+        deckOrder: 0
+      });
+      await reassignCardDeck({
+        id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 4)!.id,
+        deckId: dealerDeck.id,
+        deckOrder: 1
+      });
     }
   }
 
@@ -102,18 +120,36 @@ export function MainPage() {
   }
 
   const restockDrawDeck = async () =>{
-    const shuffledCards = shuffle(discardDeck!.cards);
-    for (const card of shuffledCards) {
-      await reassignCardDeck({
-        id: card.id,
-        deckId: drawDeck!.id,
-        deckOrder: shuffledCards.indexOf(card),
-      });
+    if (discardDeck) {
+      const shuffledCards = shuffle(discardDeck.cards);
+      for (const card of shuffledCards) {
+        await reassignCardDeck({
+          id: card.id,
+          deckId: drawDeck!.id,
+          deckOrder: shuffledCards.indexOf(card),
+        });
+      }
     }
   }
 
   const handleEndRound = async () => {
-
+    if (discardDeck && playerDeck && playerDeck.cards.length > 0 && dealerDeck && dealerDeck.cards.length > 0) {
+      const cardsForDiscard: Card[] = [];
+      for (const card of playerDeck.cards) {
+        cardsForDiscard.push(card);
+      }
+      for (const card of dealerDeck.cards) {
+        cardsForDiscard.push(card);
+      }
+      for (const card of cardsForDiscard) {
+        await reassignCardDeck({
+          id: card.id,
+          deckId: discardDeck.id,
+          deckOrder: (discardDeck.cards.length + cardsForDiscard.indexOf(card)),
+        });
+      }
+      initializeHands();
+    }
   }
 
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./Main.css";
 import type { Card, Deck } from "wasp/entities";
 import type {DeckWithCards} from "./queries";
@@ -13,6 +13,7 @@ export function MainPage() {
   const [discardDeckRef, setDiscardDeckRef] = useState(0);
   const [playerDeckRef, setPlayerDeckRef] = useState(0);
   const [dealerDeckRef, setDealerDeckRef] = useState(0);
+  const newGameSetUp = useRef(false);
   const { data: decks, isLoading, error } = useQuery(getDecks);
 
   const drawDeck = decks?.find((deck) => deck.id === drawDeckRef);
@@ -20,12 +21,21 @@ export function MainPage() {
   const playerDeck = decks?.find((deck) => deck.id === playerDeckRef);
   const dealerDeck = decks?.find((deck) => deck.id === dealerDeckRef);
 
+  useEffect(() => { 
+    if (newGameSetUp.current) {
+      if (playerDeck && dealerDeck && drawDeck && drawDeck.cards.length > 0) {
+        initializeHands();
+        newGameSetUp.current = false;
+      }
+    }
+  }, [drawDeck]);
+
   const handleNewGame = async () => {
     // Initialize cards
     const tempCards = await initializeCards();
     // Initialize decks and shuffle draw deck
     await initializeDecks(tempCards, setDrawDeckRef, setDiscardDeckRef, setPlayerDeckRef, setDealerDeckRef);
-
+    newGameSetUp.current = true;
   };
 
   const handleDrawToDiscard = async () => {
@@ -43,15 +53,46 @@ export function MainPage() {
     }
   }
 
+  const initializeHands = async () => {
+    if (playerDeck && dealerDeck && drawDeck && drawDeck.cards.length > 0) {
+      if (drawDeck.cards.length > 3) {
+        await reassignCardDeck({
+          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1)!.id,
+          deckId: playerDeck.id,
+          deckOrder: 0
+        });
+        await reassignCardDeck({
+          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 2)!.id,
+          deckId: playerDeck.id,
+          deckOrder: 1
+        });
+        await reassignCardDeck({
+          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 3)!.id,
+          deckId: dealerDeck.id,
+          deckOrder: 0
+        });
+        await reassignCardDeck({
+          id: drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 4)!.id,
+          deckId: dealerDeck.id,
+          deckOrder: 1
+        });
+      }
+    }
+  }
+
   const drawToDeck = async (destinationDeck: DeckWithCards) => {
     if (drawDeck && destinationDeck) {
       if (drawDeck.cards.length > 0) {
         const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);
-        await reassignCardDeck({
-          id: topCard!.id,
-          deckId: destinationDeck.id,
-          deckOrder: destinationDeck.cards.length
-        });
+        if (topCard) {
+          await reassignCardDeck({
+            id: topCard.id,
+            deckId: destinationDeck.id,
+            deckOrder: destinationDeck.cards.length
+          });
+        } else {
+          console.log("No top card found");
+        }
         if (drawDeck.cards.length == 1) restockDrawDeck();
       } else {
         console.log("drawDeck empty");
@@ -71,6 +112,10 @@ export function MainPage() {
     }
   }
 
+  const handleEndRound = async () => {
+
+  }
+
 
   return (
     <main className="container">
@@ -87,6 +132,9 @@ export function MainPage() {
         </div>
         <div className="button button-filled" onClick={() => drawToDeck(dealerDeck!)}>
           Draw to Dealer
+        </div>
+        <div className="button button-filled" onClick={handleEndRound}>
+          End Round
         </div>
       </div>
       <div className="flex gap-3">

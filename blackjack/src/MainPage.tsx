@@ -21,11 +21,11 @@ export function MainPage() {
   const playerDeck = decks?.find((deck) => deck.id === playerDeckRef);
   const dealerDeck = decks?.find((deck) => deck.id === dealerDeckRef);
 
-  const runGameAction = async (actionFunction: () => Promise<void>) => {
+  const runGameAction = async <T,>(actionFunction: () => Promise<T>): Promise<T | undefined> => {
     if (isProcessing.current) return;
     try {
       isProcessing.current = true;
-      await actionFunction();
+      return await actionFunction();
     } catch (err) {
       console.error("Action failed:", err);
     } finally {
@@ -82,15 +82,15 @@ export function MainPage() {
     }
   });
 
-  const drawToDeck = (destinationDeck: DeckWithCards) => runGameAction(async () => {
+  const drawToDeck = (destinationDeck: DeckWithCards): Promise<Card | undefined> => runGameAction(async () => {
     if (!drawDeck || !destinationDeck) return;
 
-    if (drawDeck.cards.length === 0) {
-      await restockDrawDeck();
-      return;
+    let newDrawDeck: Card[] = [...drawDeck.cards];
+    if (newDrawDeck.length === 0) {
+      newDrawDeck = await restockDrawDeck();
     }
 
-    const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);
+    const topCard: Card | undefined = newDrawDeck.find((card) => card.deckOrder === newDrawDeck.length - 1);
     if (topCard) {
       await reassignCardDeck({
         id: topCard.id,
@@ -98,10 +98,12 @@ export function MainPage() {
         deckOrder: destinationDeck.cards.length
       });
     }
+    return topCard;
   });
 
   const restockDrawDeck = async (extraCards: Card[] = []): Promise<Card[]> => {
     if (!discardDeck || !drawDeck) return [];
+    console.log("Restocking Draw Deck");
 
     const remainingDrawCards = [...drawDeck.cards];
     const allDiscardedCards = [...discardDeck.cards, ...extraCards];
@@ -179,12 +181,25 @@ export function MainPage() {
   const playerStand = () => runGameAction(async () => {
     if (!playerDeck || !dealerDeck) return;
     // Check Dealer Score
-    calculateScore(dealerDeck.cards);
+    let currentDealerCards = [...dealerDeck.cards];
+    let dealerScore = calculateScore(currentDealerCards);
+    while (dealerScore < 17) {
+      const drawnCard = await drawToDeck(dealerDeck);
+      if (!drawnCard) {
+        console.warn("Could not draw card");
+        break;
+      }
+      console.log("Drawn Card: " + drawnCard);
+      currentDealerCards.push(drawnCard);
+      dealerScore = calculateScore(currentDealerCards);
+      console.log("New Dealer Score:", dealerScore);
+    }
     // Dealer Hit if needed
     // Calculate Winnings
     // Handle End of Round
     //handleEndRound();
   });
+
 
   return (
     <main className="container">

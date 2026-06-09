@@ -102,7 +102,7 @@ export function MainPage() {
 
   const restockDrawDeck = async (extraCards: Card[] = []): Promise<Card[]> => {
     if (!discardDeck || !drawDeck) return [];
-    
+
     const remainingDrawCards = [...drawDeck.cards];
     const allDiscardedCards = [...discardDeck.cards, ...extraCards];
     const shuffledDiscarded = shuffle(allDiscardedCards);
@@ -176,23 +176,36 @@ export function MainPage() {
     }
   });
 
+  const playerStand = () => runGameAction(async () => {
+    if (!playerDeck || !dealerDeck) return;
+    // Check Dealer Score
+    calculateScore(dealerDeck.cards);
+    // Dealer Hit if needed
+    // Calculate Winnings
+    // Handle End of Round
+    //handleEndRound();
+  });
+
   return (
     <main className="container">
       <h2 className="title">Welcome to Blackjack!</h2>
       <div className="buttons">
-        <button className="button button-filled" onClick={handleNewGame}>
+        <button className="button button-filled disabled:opacity-25" onClick={handleNewGame} disabled={isProcessing.current}>
           New Game
         </button>
-        <button className="button button-filled" onClick={handleDrawToDiscard}>
+        <button className="button button-filled disabled:opacity-25" onClick={handleDrawToDiscard} disabled={isProcessing.current}>
           Draw to Discard
         </button>
-        <button className="button button-filled" onClick={() => drawToDeck(playerDeck!)}>
-          Draw to Player
+        <button className="button button-filled disabled:opacity-25" onClick={() => drawToDeck(playerDeck!)} disabled={isProcessing.current}>
+          Player HIT
         </button>
-        <button className="button button-filled" onClick={() => drawToDeck(dealerDeck!)}>
-          Draw to Dealer
+        <button className="button button-filled disabled:opacity-25" onClick={playerStand} disabled={isProcessing.current}>
+          Player STAND
         </button>
-        <button className="button button-filled" onClick={handleEndRound}>
+        <button className="button button-filled disabled:opacity-25" onClick={() => drawToDeck(dealerDeck!)} disabled={isProcessing.current}>
+          Dealer HIT
+        </button>
+        <button className="button button-filled disabled:opacity-25" onClick={handleEndRound} disabled={isProcessing.current}>
           End Round
         </button>
       </div>
@@ -243,6 +256,20 @@ function shuffle<Card>(cards: Card[]): Card[] {
   return shuffled;
 }
 
+function calculateScore(cards: Card[]): number {
+  if (!cards) return 0;
+  let scoreTotal = 0;
+  let acesPresent = 0;
+  for (const card of cards) {
+    scoreTotal += card.score;
+    if (card.value === "A") acesPresent++;
+  }
+  for (let i: number = 0; i < acesPresent; i++) {
+    if (scoreTotal > 21) (scoreTotal = scoreTotal - 10);
+  }
+  return scoreTotal;
+}
+
 const initializeCards = async () => {
   const tempCards: Card[] = [];
   try {
@@ -284,3 +311,5 @@ const initializeDecks = async (
     dealerId: tempDealerDeckRef.id
   };
 }
+
+

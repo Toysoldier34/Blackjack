@@ -56,6 +56,13 @@
 //TODO: Remove temp short cardList
 export const cardList = [
     { suit: "♠", value: "A", score: 11 },
+    { suit: "♠", value: "A", score: 11 },
+    { suit: "♠", value: "A", score: 11 },
+    { suit: "♠", value: "A", score: 11 },
+    { suit: "♠", value: "A", score: 11 },
+    { suit: "♠", value: "A", score: 11 },
+    { suit: "♠", value: "A", score: 11 },
+    { suit: "♠", value: "A", score: 11 },
     { suit: "♠", value: "2", score: 2 },
     { suit: "♠", value: "3", score: 3 },
     { suit: "♠", value: "4", score: 4 },

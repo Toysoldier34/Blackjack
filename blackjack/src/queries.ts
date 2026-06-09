@@ -1,7 +1,5 @@
-import type { Card } from "wasp/entities";
-import type { GetCards } from "wasp/server/operations";
-import type { Deck } from "wasp/entities";
-import type { GetDecks } from "wasp/server/operations";
+import type { Card, Deck } from "wasp/entities";
+import type { GetCards, GetDecks } from "wasp/server/operations";
 
 export type DeckWithCards = Deck & { cards: Card[] };
 

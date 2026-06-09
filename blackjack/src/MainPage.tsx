@@ -5,6 +5,7 @@ import type { DeckWithCards } from "./queries";
 import { getDecks, reassignCardDeck, useQuery, updateCardDeckOrder } from "wasp/client/operations";
 import { createDeck, createCard } from "wasp/client/operations";
 import { cardList } from "./cardList";
+import { HyperplexedText } from "./HyperplexedText";
 
 export function MainPage() {
   const [drawDeckRef, setDrawDeckRef] = useState(0);
@@ -67,22 +68,6 @@ export function MainPage() {
       deckOrder: 1 
     });
   }
-
-  const handleDrawToDiscard = () => runGameAction(async () => {
-    if (!drawDeck || !discardDeck) return;
-
-    if (drawDeck.cards.length === 0) {
-      await restockDrawDeck();
-      return; 
-    } else if (drawDeck.cards.length > 0) {
-      const topCard = drawDeck.cards.find((card) => card.deckOrder === drawDeck.cards.length - 1);
-      await reassignCardDeck({
-        id: topCard!.id,
-        deckId: discardDeck.id,
-        deckOrder: discardDeck.cards.length
-      });
-    }
-  });
 
   const handleDrawToDeckClick = (destinationDeck: DeckWithCards) => runGameAction(async () => {
     if (!drawDeck || !playerDeck) return;
@@ -148,8 +133,6 @@ export function MainPage() {
       deckOrder: index
     }));
   }
-
-  const handleEndRound = () => runGameAction(async () => { endRound(); });
 
   const endRound = async () => {
     if (!discardDeck || !playerDeck || !dealerDeck || ! drawDeck) return;
@@ -246,33 +229,9 @@ export function MainPage() {
 
 
   return (
-    <main className="container min-h-screen min-w-screen mx-auto flex flex-row items-center p-6">
-      {/*Left Button Column*/}
-      <div className="grow-2 flex flex-col">
-        <div className="buttons flex flex-col justify-start gap-4">
-          <button className="button button-filled disabled:opacity-25" onClick={handleNewGame} disabled={isProcessing.current}>
-            New Game
-          </button>
-          <button className="button button-filled disabled:opacity-25" onClick={handleDrawToDiscard} disabled={isProcessing.current}>
-            Draw to Discard
-          </button>
-          <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
-            Player HIT
-          </button>
-          <button className="button button-filled disabled:opacity-25" onClick={playerStay} disabled={isProcessing.current}>
-            Player STAY
-          </button>
-          <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(dealerDeck!)} disabled={isProcessing.current}>
-            Dealer HIT
-          </button>
-          <button className="button button-filled disabled:opacity-25" onClick={handleEndRound} disabled={isProcessing.current}>
-            End Round
-          </button>
-        </div>
-      </div>
-      {/*Center Content Column*/}
+    <main className="min-h-window min-w-window flex flex-row">
       <div className="min-h-screen flex flex-col grow-8">
-        <h2 className="title text-center mb-6">BLACKJACK</h2>
+        <h2 className="title text-center mb-6"><HyperplexedText text="BLACKJACK"/></h2>
         {isLoading && "Loading..."}
         {error && "Error loading decks: " + error}
         <div className="grid grid-cols-1 grow content-between">
@@ -280,14 +239,24 @@ export function MainPage() {
             <div className="text-center text-2xl">DEALER HAND</div>
             <DealerHand cards={dealerDeck?.cards} hideDealerCard={hideDealerCard}/>
           </div>
+          <div className="flex items-center ml-6">
+            <div className="buttons flex flex-col justify-start gap-4">
+              <button className="disabled:opacity-25 text-left" onClick={handleNewGame} disabled={isProcessing.current}>
+                <HyperplexedText text="NEW GAME"/>
+              </button>
+              <button className="disabled:opacity-25 text-left" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
+                <HyperplexedText text="HIT"/>
+              </button>
+              <button className="disabled:opacity-25 text-left" onClick={playerStay} disabled={isProcessing.current}>
+                <HyperplexedText text="STAY"/>
+              </button>
+            </div>
+          </div>
           <div>
             <PlayerHand cards={playerDeck?.cards}/>
-            <div className="text-center text-2xl">PLAYER HAND</div>
+            <div className="text-center text-2xl mb-6">PLAYER HAND</div>
           </div>
         </div>
-      </div>
-      {/*Right Padding Column*/}
-      <div className="grow-2">
       </div>
     </main>
   );
@@ -306,7 +275,7 @@ const DealerHand = ({ cards, hideDealerCard }: DealerHandProps) => {
     <div className="flex flex-wrap justify-center gap-4 my-6 w-full">
       {firstCard && (
         hideDealerCard ? (
-          <PlayingCard key={firstCard.id} card={{...firstCard, suit: "?", value: "?"}} />
+          <PlayingCard key={firstCard.id} card={{...firstCard, suit: "", value: ""}} />
         ) : (
           <PlayingCard key={firstCard.id} card={firstCard} />
         )

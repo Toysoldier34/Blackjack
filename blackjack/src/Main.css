@@ -19,35 +19,15 @@ body {
   margin-bottom: 1rem;
 }
 
-.button {
-  font-size: 1.2rem;
-  font-weight: 700;
-  text-decoration: none;
-  padding: 1.2rem 1.5rem;
-  border-radius: 10px;
+h3 {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(3rem, 5vw, 6rem);
+  color: white;
+  padding: 0rem clamp(1rem, 1vw, 2rem);
+  border-radius: clamp(0.4rem, 0.75vw, 1rem);
 }
 
-.button-filled {
+h3:hover {
+  background-color: white;
   color: black;
-  background-color: #ffcc00;
-  border: 2px solid #ffcc00;
-
-  transition: all 0.2s ease-in-out;
 }
-
-.button-filled:hover {
-  filter: brightness(0.95);
-}
-
-.button-outlined {
-  color: black;
-  background-color: transparent;
-  border: 2px solid #ffcc00;
-
-  transition: all 0.2s ease-in-out;
-}
-
-.button-outlined:hover {
-  filter: brightness(0.95);
-}
-

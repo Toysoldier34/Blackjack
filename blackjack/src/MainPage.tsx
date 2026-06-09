@@ -82,24 +82,44 @@ export function MainPage() {
     }
   });
 
-  const drawToDeck = (destinationDeck: DeckWithCards): Promise<Card | undefined> => runGameAction(async () => {
-    if (!drawDeck || !destinationDeck) return;
+  const handleDrawToDeckClick = (destinationDeck: DeckWithCards) => runGameAction(async () => {
+    if (!drawDeck || !playerDeck) return;
+    const { drawnCard } = await drawToDeck(destinationDeck, drawDeck.cards, destinationDeck.cards.length);
+    if (!drawnCard) return;
+    const currentPlayerCards = [...playerDeck.cards];
+    currentPlayerCards.push(drawnCard);
+    const playerScore = calculateScore(currentPlayerCards);
+    if (playerScore > 21) {
+      // Player Loses
+      alert("Player Bust with a score of " + playerScore);
+      endRound();
+    }
+  });
 
-    let newDrawDeck: Card[] = [...drawDeck.cards];
+  const drawToDeck = async (
+    destinationDeck: DeckWithCards, 
+    currentDrawCards: Card[], 
+    currentDestinationCount: number
+  ): Promise<{ drawnCard: Card | undefined; updatedDrawCards: Card[] }> => {
+    if (!drawDeck || !destinationDeck) return { drawnCard: undefined, updatedDrawCards: currentDrawCards };
+
+    let newDrawDeck: Card[] = [...currentDrawCards];
     if (newDrawDeck.length === 0) {
       newDrawDeck = await restockDrawDeck();
     }
 
+    let updatedDrawCards: Card[] = [];
     const topCard: Card | undefined = newDrawDeck.find((card) => card.deckOrder === newDrawDeck.length - 1);
     if (topCard) {
       await reassignCardDeck({
         id: topCard.id,
         deckId: destinationDeck.id,
-        deckOrder: destinationDeck.cards.length
+        deckOrder: currentDestinationCount
       });
+      updatedDrawCards = newDrawDeck.filter(card => card.id !== topCard.id);
     }
-    return topCard;
-  });
+    return { drawnCard: topCard, updatedDrawCards };
+  };
 
   const restockDrawDeck = async (extraCards: Card[] = []): Promise<Card[]> => {
     if (!discardDeck || !drawDeck) return [];
@@ -127,6 +147,12 @@ export function MainPage() {
   }
 
   const handleEndRound = () => runGameAction(async () => {
+    endRound();
+
+  });
+
+  //const endRound = () => runGameAction(async () => {
+  const endRound = async () => {
     if (!discardDeck || !playerDeck || !dealerDeck || ! drawDeck) return;
     // Move hand cards to discard
     const cardsForDiscard: Card[] = [];
@@ -176,28 +202,48 @@ export function MainPage() {
     } else {
       console.warn("Not enough cards in play to deal a new round, even after restocking.");
     }
-  });
+  }
 
-  const playerStand = () => runGameAction(async () => {
-    if (!playerDeck || !dealerDeck) return;
+  const playerStay = () => runGameAction(async () => {
+    if (!playerDeck || !dealerDeck || !drawDeck) return;
     // Check Dealer Score
     let currentDealerCards = [...dealerDeck.cards];
     let dealerScore = calculateScore(currentDealerCards);
+    let trackedDrawCards = [...drawDeck.cards];
+    console.log("Dealer Score:", dealerScore);
+    // Dealer Hit if needed
     while (dealerScore < 17) {
-      const drawnCard = await drawToDeck(dealerDeck);
+      const { drawnCard, updatedDrawCards } = await drawToDeck(dealerDeck, trackedDrawCards, currentDealerCards.length);
       if (!drawnCard) {
         console.warn("Could not draw card");
         break;
       }
-      console.log("Drawn Card: " + drawnCard);
+      console.log("Drawn Card: ", drawnCard);
+      trackedDrawCards = updatedDrawCards;
       currentDealerCards.push(drawnCard);
       dealerScore = calculateScore(currentDealerCards);
       console.log("New Dealer Score:", dealerScore);
     }
-    // Dealer Hit if needed
+    console.log("Dealer Loop Finished. Final Score:", dealerScore);
     // Calculate Winnings
+    const playerScore = calculateScore(playerDeck.cards)
+    if (playerScore > 21) {
+      // Player Loses
+      alert("Player Bust with a score of " + playerScore);
+    } else if (dealerScore > 21) {
+      // Player Wins
+      alert("Dealer Bust with a score of " + dealerScore);
+    } else if (playerScore > dealerScore) {
+      // Player Wins
+      alert("Player Wins with a score of " + playerScore);
+    } else if (dealerScore > playerScore) {
+      // Player Loses
+      alert("Dealer Wins with a score of " + dealerScore);
+    } else {
+      console.warn("No winner error");
+    }
     // Handle End of Round
-    //handleEndRound();
+    endRound();
   });
 
 
@@ -211,13 +257,13 @@ export function MainPage() {
         <button className="button button-filled disabled:opacity-25" onClick={handleDrawToDiscard} disabled={isProcessing.current}>
           Draw to Discard
         </button>
-        <button className="button button-filled disabled:opacity-25" onClick={() => drawToDeck(playerDeck!)} disabled={isProcessing.current}>
+        <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
           Player HIT
         </button>
-        <button className="button button-filled disabled:opacity-25" onClick={playerStand} disabled={isProcessing.current}>
-          Player STAND
+        <button className="button button-filled disabled:opacity-25" onClick={playerStay} disabled={isProcessing.current}>
+          Player STAY
         </button>
-        <button className="button button-filled disabled:opacity-25" onClick={() => drawToDeck(dealerDeck!)} disabled={isProcessing.current}>
+        <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(dealerDeck!)} disabled={isProcessing.current}>
           Dealer HIT
         </button>
         <button className="button button-filled disabled:opacity-25" onClick={handleEndRound} disabled={isProcessing.current}>

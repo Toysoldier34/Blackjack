@@ -11,6 +11,7 @@ export function MainPage() {
   const [discardDeckRef, setDiscardDeckRef] = useState(0);
   const [playerDeckRef, setPlayerDeckRef] = useState(0);
   const [dealerDeckRef, setDealerDeckRef] = useState(0);
+  const [hideDealerCard, setHideDealerCard] = useState(true);
   
   const isProcessing = useRef(false);
 
@@ -34,6 +35,7 @@ export function MainPage() {
   };
 
   const handleNewGame = () => runGameAction(async () => {
+    setHideDealerCard(true);
     // Initialize cards
     const tempCards = await initializeCards();
     // Initialize decks and shuffle draw deck
@@ -90,6 +92,7 @@ export function MainPage() {
     currentPlayerCards.push(drawnCard);
     const playerScore = calculateScore(currentPlayerCards);
     if (playerScore > 21) {
+      setHideDealerCard(false);
       // Player Loses
       alert("Player Bust with a score of " + playerScore);
       endRound();
@@ -146,12 +149,8 @@ export function MainPage() {
     }));
   }
 
-  const handleEndRound = () => runGameAction(async () => {
-    endRound();
+  const handleEndRound = () => runGameAction(async () => { endRound(); });
 
-  });
-
-  //const endRound = () => runGameAction(async () => {
   const endRound = async () => {
     if (!discardDeck || !playerDeck || !dealerDeck || ! drawDeck) return;
     // Move hand cards to discard
@@ -176,6 +175,7 @@ export function MainPage() {
     if (stashedDeck.length < 4) {
       stashedDeck = await restockDrawDeck(cardsForDiscard)
     }
+    setHideDealerCard(true);
 
     // Initializes Hands
     if (stashedDeck.length >= 4) {
@@ -206,11 +206,11 @@ export function MainPage() {
 
   const playerStay = () => runGameAction(async () => {
     if (!playerDeck || !dealerDeck || !drawDeck) return;
+    setHideDealerCard(false);
     // Check Dealer Score
     let currentDealerCards = [...dealerDeck.cards];
     let dealerScore = calculateScore(currentDealerCards);
     let trackedDrawCards = [...drawDeck.cards];
-    console.log("Dealer Score:", dealerScore);
     // Dealer Hit if needed
     while (dealerScore < 17) {
       const { drawnCard, updatedDrawCards } = await drawToDeck(dealerDeck, trackedDrawCards, currentDealerCards.length);
@@ -218,13 +218,10 @@ export function MainPage() {
         console.warn("Could not draw card");
         break;
       }
-      console.log("Drawn Card: ", drawnCard);
       trackedDrawCards = updatedDrawCards;
       currentDealerCards.push(drawnCard);
       dealerScore = calculateScore(currentDealerCards);
-      console.log("New Dealer Score:", dealerScore);
     }
-    console.log("Dealer Loop Finished. Final Score:", dealerScore);
     // Calculate Winnings
     const playerScore = calculateScore(playerDeck.cards)
     if (playerScore > 21) {
@@ -240,7 +237,8 @@ export function MainPage() {
       // Player Loses
       alert("Dealer Wins with a score of " + dealerScore);
     } else {
-      console.warn("No winner error");
+      // Player Ties
+      alert("Push due to Tie");
     }
     // Handle End of Round
     endRound();
@@ -248,49 +246,118 @@ export function MainPage() {
 
 
   return (
-    <main className="container">
-      <h2 className="title">Welcome to Blackjack!</h2>
-      <div className="buttons">
-        <button className="button button-filled disabled:opacity-25" onClick={handleNewGame} disabled={isProcessing.current}>
-          New Game
-        </button>
-        <button className="button button-filled disabled:opacity-25" onClick={handleDrawToDiscard} disabled={isProcessing.current}>
-          Draw to Discard
-        </button>
-        <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
-          Player HIT
-        </button>
-        <button className="button button-filled disabled:opacity-25" onClick={playerStay} disabled={isProcessing.current}>
-          Player STAY
-        </button>
-        <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(dealerDeck!)} disabled={isProcessing.current}>
-          Dealer HIT
-        </button>
-        <button className="button button-filled disabled:opacity-25" onClick={handleEndRound} disabled={isProcessing.current}>
-          End Round
-        </button>
+    <main className="container min-h-screen min-w-screen mx-auto flex flex-row items-center p-6">
+      {/*Left Button Column*/}
+      <div className="grow-2 flex flex-col">
+        <div className="buttons flex flex-col justify-start gap-4">
+          <button className="button button-filled disabled:opacity-25" onClick={handleNewGame} disabled={isProcessing.current}>
+            New Game
+          </button>
+          <button className="button button-filled disabled:opacity-25" onClick={handleDrawToDiscard} disabled={isProcessing.current}>
+            Draw to Discard
+          </button>
+          <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
+            Player HIT
+          </button>
+          <button className="button button-filled disabled:opacity-25" onClick={playerStay} disabled={isProcessing.current}>
+            Player STAY
+          </button>
+          <button className="button button-filled disabled:opacity-25" onClick={() => handleDrawToDeckClick(dealerDeck!)} disabled={isProcessing.current}>
+            Dealer HIT
+          </button>
+          <button className="button button-filled disabled:opacity-25" onClick={handleEndRound} disabled={isProcessing.current}>
+            End Round
+          </button>
+        </div>
       </div>
-      <div className="flex gap-3">
+      {/*Center Content Column*/}
+      <div className="min-h-screen flex flex-col grow-8">
+        <h2 className="title text-center mb-6">BLACKJACK</h2>
         {isLoading && "Loading..."}
         {error && "Error loading decks: " + error}
-        <div className="content border">
-          {drawDeck && drawDeck.name}
-          {drawDeck && <CardsList cards={drawDeck.cards} />}
-        </div>
-        <div className="content border">
-          {discardDeck && discardDeck.name}
-          {discardDeck && <CardsList cards={discardDeck.cards} />}
-        </div>
-        <div className="content border">
-          {playerDeck && playerDeck.name}
-          {playerDeck && <CardsList cards={playerDeck.cards} />}
-        </div>
-        <div className="content border">
-          {dealerDeck && dealerDeck.name}
-          {dealerDeck && <CardsList cards={dealerDeck.cards} />}
+        <div className="grid grid-cols-1 grow content-between">
+          <div>
+            <div className="text-center text-2xl">DEALER HAND</div>
+            <DealerHand cards={dealerDeck?.cards} hideDealerCard={hideDealerCard}/>
+          </div>
+          <div>
+            <PlayerHand cards={playerDeck?.cards}/>
+            <div className="text-center text-2xl">PLAYER HAND</div>
+          </div>
         </div>
       </div>
+      {/*Right Padding Column*/}
+      <div className="grow-2">
+      </div>
     </main>
+  );
+}
+
+
+interface DealerHandProps { cards: Card[] | undefined; hideDealerCard: boolean; }
+
+const DealerHand = ({ cards, hideDealerCard }: DealerHandProps) => {
+  if (!cards || cards.length === 0) return null;
+
+  const dealerCards = [...cards];
+  const firstCard = dealerCards.shift(); 
+
+  return (
+    <div className="flex flex-wrap justify-center gap-4 my-6 w-full">
+      {firstCard && (
+        hideDealerCard ? (
+          <PlayingCard key={firstCard.id} card={{...firstCard, suit: "?", value: "?"}} />
+        ) : (
+          <PlayingCard key={firstCard.id} card={firstCard} />
+        )
+      )}
+      {dealerCards.map((card) => (
+        <PlayingCard key={card.id} card={card} />
+      ))}
+    </div>
+  );
+};
+
+interface PlayerHandProps { cards: Card[] | undefined; }
+
+const PlayerHand = ({cards}: PlayerHandProps) => {
+  if (!cards || cards.length === 0) return;
+  
+  return (
+    <div className="flex flex-wrap justify-center gap-4 my-6 w-full">
+      {cards.map((card) => (
+        <PlayingCard key={card.id} card={card}/>
+      ))}
+    </div>
+  )
+}
+
+interface PlayingCardProps { card: Card; }
+
+const PlayingCard = ({card}: PlayingCardProps) => {
+  return (
+    <div className="hover-3d my-12 mx-2 cursor-pointer">
+      <div className="card w-50 h-70 bg-black text-white bg-[radial-gradient(circle_at_bottom_left,#ffffff04_35%,transparent_36%),radial-gradient(circle_at_top_right,#ffffff04_35%,transparent_36%)] bg-size-[4.95em_4.95em]">
+        <div className="card-body">
+          <div className="flex mb-10">
+            <div className="font-bold text-3xl">{card.value}</div>
+          </div>
+          <div className="text-8xl text-center mb-4 opacity-70">{card.suit}</div>
+          <div className="flex justify-end mb-10">
+            <div className="font-bold text-3xl rotate-180">{card.value}</div>
+          </div>
+        </div>
+      </div>
+      {/* 8 empty divs needed for the 3D effect */}
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
   );
 }
 

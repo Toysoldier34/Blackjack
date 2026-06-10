@@ -6,6 +6,7 @@ import { getDecks, reassignCardDeck, useQuery, updateCardDeckOrder } from "wasp/
 import { createDeck, createCard } from "wasp/client/operations";
 import { cardList } from "./cardList";
 import { HyperplexedText } from "./HyperplexedText";
+import { Particles } from "./components/ui/particles";
 
 export function MainPage() {
   const [drawDeckRef, setDrawDeckRef] = useState(0);
@@ -229,36 +230,40 @@ export function MainPage() {
 
 
   return (
-    <main className="min-h-window min-w-window flex flex-row">
-      <div className="min-h-screen flex flex-col grow-8">
-        <h2 className="title text-center mb-6"><HyperplexedText text="BLACKJACK"/></h2>
-        {isLoading && "Loading..."}
-        {error && "Error loading decks: " + error}
-        <div className="grid grid-cols-1 grow content-between">
-          <div>
-            <div className="text-center text-2xl">DEALER HAND</div>
-            <DealerHand cards={dealerDeck?.cards} hideDealerCard={hideDealerCard}/>
+    <Particles>
+      <main className="min-h-screen min-w-screen">
+        <div className="min-h-screen flex flex-col">
+          <div className="flex flex-col">
+            <h2 className="title text-center m-6"><HyperplexedText text="BLACKJACK"/></h2>
           </div>
-          <div className="flex items-center ml-6">
-            <div className="buttons flex flex-col justify-start gap-4">
-              <button className="disabled:opacity-25 text-left" onClick={handleNewGame} disabled={isProcessing.current}>
-                <HyperplexedText text="NEW GAME"/>
-              </button>
-              <button className="disabled:opacity-25 text-left" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
-                <HyperplexedText text="HIT"/>
-              </button>
-              <button className="disabled:opacity-25 text-left" onClick={playerStay} disabled={isProcessing.current}>
-                <HyperplexedText text="STAY"/>
-              </button>
+          {isLoading && "Loading..."}
+          {error && "Error loading decks: " + error}
+          <div className="grid grid-cols-1 grow content-between">
+            <div>
+              <div className="text-center text-2xl">DEALER HAND</div>
+              <DealerHand cards={dealerDeck?.cards} hideDealerCard={hideDealerCard}/>
+            </div>
+            <div className="flex items-center ml-6">
+              <div className="buttons flex flex-col justify-start gap-4">
+                <button className="disabled:opacity-25 text-left" onClick={handleNewGame} disabled={isProcessing.current}>
+                  <HyperplexedText text="NEW GAME"/>
+                </button>
+                <button className="disabled:opacity-25 text-left" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
+                  <HyperplexedText text="HIT"/>
+                </button>
+                <button className="disabled:opacity-25 text-left" onClick={playerStay} disabled={isProcessing.current}>
+                  <HyperplexedText text="STAY"/>
+                </button>
+              </div>
+            </div>
+            <div>
+              <PlayerHand cards={playerDeck?.cards}/>
+              <div className="text-center text-2xl mb-6">PLAYER HAND</div>
             </div>
           </div>
-          <div>
-            <PlayerHand cards={playerDeck?.cards}/>
-            <div className="text-center text-2xl mb-6">PLAYER HAND</div>
-          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </Particles>
   );
 }
 
@@ -306,7 +311,7 @@ interface PlayingCardProps { card: Card; }
 const PlayingCard = ({card}: PlayingCardProps) => {
   return (
     <div className="hover-3d my-12 mx-2 cursor-pointer">
-      <div className="card w-50 h-70 bg-black text-white bg-[radial-gradient(circle_at_bottom_left,#ffffff04_35%,transparent_36%),radial-gradient(circle_at_top_right,#ffffff04_35%,transparent_36%)] bg-size-[4.95em_4.95em]">
+      <div className="card w-50 h-70 bg-black text-white border-2 border-white bg-[radial-gradient(circle_at_bottom_left,#ffffff04_35%,transparent_36%),radial-gradient(circle_at_top_right,#ffffff04_35%,transparent_36%)] bg-size-[4.95em_4.95em]">
         <div className="card-body">
           <div className="flex mb-10">
             <div className="font-bold text-3xl">{card.value}</div>

@@ -2,11 +2,14 @@ import React, { useRef, useState } from "react";
 import "./Main.css";
 import type { Card } from "wasp/entities";
 import type { DeckWithCards } from "./queries";
-import { getDecks, reassignCardDeck, useQuery, updateCardDeckOrder } from "wasp/client/operations";
-import { createDeck, createCard } from "wasp/client/operations";
-import { cardList } from "./cardList";
-import { HyperplexedText } from "./HyperplexedText";
-import { Particles } from "./components/ui/particles";
+import { getDecks, reassignCardDeck, useQuery } from "wasp/client/operations";
+import { HyperplexedText } from "./components/ui/HyperplexedText";
+import { Particles } from "./components/ui/Particles";
+import { shuffle, calculateScore } from "./utilities"
+import { initializeCards, initializeDecks } from "./initializers"
+import { DealerHand } from "./components/DealerHand";
+import { PlayerHand } from "./components/PlayerHand";
+
 
 export function MainPage() {
   const [drawDeckRef, setDrawDeckRef] = useState(0);
@@ -14,7 +17,9 @@ export function MainPage() {
   const [playerDeckRef, setPlayerDeckRef] = useState(0);
   const [dealerDeckRef, setDealerDeckRef] = useState(0);
   const [hideDealerCard, setHideDealerCard] = useState(true);
-  
+  const [winnerText, setWinnerText] = useState("");
+  const [disableButtons, setDisableButtons] = useState(false);
+
   const isProcessing = useRef(false);
 
   const { data: decks, isLoading, error } = useQuery(getDecks);
@@ -23,6 +28,8 @@ export function MainPage() {
   const discardDeck = decks?.find((deck) => deck.id === discardDeckRef);
   const playerDeck = decks?.find((deck) => deck.id === playerDeckRef);
   const dealerDeck = decks?.find((deck) => deck.id === dealerDeckRef);
+
+  const millisecondsToWaitBetweenRounds = 3000;
 
   const runGameAction = async <T,>(actionFunction: () => Promise<T>): Promise<T | undefined> => {
     if (isProcessing.current) return;
@@ -80,7 +87,7 @@ export function MainPage() {
     if (playerScore > 21) {
       setHideDealerCard(false);
       // Player Loses
-      alert("Player Bust with a score of " + playerScore);
+      setWinnerText("Player Bust with a score of " + playerScore);
       endRound();
     }
   });
@@ -137,6 +144,9 @@ export function MainPage() {
 
   const endRound = async () => {
     if (!discardDeck || !playerDeck || !dealerDeck || ! drawDeck) return;
+    setDisableButtons(true);
+    await new Promise(resolve => setTimeout(resolve, millisecondsToWaitBetweenRounds));
+    setDisableButtons(false);
     // Move hand cards to discard
     const cardsForDiscard: Card[] = [];
     for (const card of playerDeck.cards) {
@@ -210,19 +220,19 @@ export function MainPage() {
     const playerScore = calculateScore(playerDeck.cards)
     if (playerScore > 21) {
       // Player Loses
-      alert("Player Bust with a score of " + playerScore);
+      setWinnerText("Player Bust with a score of " + playerScore);
     } else if (dealerScore > 21) {
       // Player Wins
-      alert("Dealer Bust with a score of " + dealerScore);
+      setWinnerText("Dealer Bust with a score of " + dealerScore);
     } else if (playerScore > dealerScore) {
       // Player Wins
-      alert("Player Wins with a score of " + playerScore);
+      setWinnerText("Player Wins with a score of " + playerScore);
     } else if (dealerScore > playerScore) {
       // Player Loses
-      alert("Dealer Wins with a score of " + dealerScore);
+      setWinnerText("Dealer Wins with a score of " + dealerScore);
     } else {
       // Player Ties
-      alert("Push due to Tie");
+      setWinnerText("Push due to Tie");
     }
     // Handle End of Round
     endRound();
@@ -232,33 +242,48 @@ export function MainPage() {
   return (
     <Particles>
       <main className="min-h-screen min-w-screen">
-        <div className="min-h-screen flex flex-col">
-          <div className="flex flex-col">
-            <h2 className="title text-center m-6"><HyperplexedText text="BLACKJACK"/></h2>
-          </div>
-          {isLoading && "Loading..."}
-          {error && "Error loading decks: " + error}
-          <div className="grid grid-cols-1 grow content-between">
-            <div>
-              <div className="text-center text-2xl">DEALER HAND</div>
-              <DealerHand cards={dealerDeck?.cards} hideDealerCard={hideDealerCard}/>
-            </div>
-            <div className="flex items-center ml-6">
+        <div className="min-h-screen flex flex-row">
+          <div className="flex items-center">
+            <div className="flex ml-6">
               <div className="buttons flex flex-col justify-start gap-4">
-                <button className="disabled:opacity-25 text-left" onClick={handleNewGame} disabled={isProcessing.current}>
+                <button className="disabled:opacity-25 text-left" 
+                onClick={handleNewGame} disabled={isProcessing.current || disableButtons}
+                >
                   <HyperplexedText text="NEW GAME"/>
                 </button>
-                <button className="disabled:opacity-25 text-left" onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current}>
+                <button className="disabled:opacity-25 text-left" 
+                onClick={() => handleDrawToDeckClick(playerDeck!)} disabled={isProcessing.current || disableButtons}
+                >
                   <HyperplexedText text="HIT"/>
                 </button>
-                <button className="disabled:opacity-25 text-left" onClick={playerStay} disabled={isProcessing.current}>
+                <button className="disabled:opacity-25 text-left" 
+                onClick={playerStay} disabled={isProcessing.current || disableButtons}
+                >
                   <HyperplexedText text="STAY"/>
                 </button>
               </div>
             </div>
-            <div>
-              <PlayerHand cards={playerDeck?.cards}/>
-              <div className="text-center text-2xl mb-6">PLAYER HAND</div>
+          </div>
+          <div className="flex mx-auto">
+            <div className="flex flex-col">
+              <div className="flex flex-col">
+                <h2 className="title text-center m-6"><HyperplexedText text="BLACKJACK"/></h2>
+              </div>
+              {isLoading && "Loading..."}
+              {error && "Error loading decks: " + error}
+              <div className="flex flex-col grow justify-between items-center">
+                <div>
+                  <div className="text-center text-1xl text-white">DEALER HAND</div>
+                  <DealerHand cards={dealerDeck?.cards} hideDealerCard={hideDealerCard}/>
+                </div>   
+                <div className="text-white text-center uppercase text-xl">
+                  {winnerText}
+                </div>             
+                <div>
+                  <PlayerHand cards={playerDeck?.cards}/>
+                  <div className="text-center text-1xl mb-6 text-white">PLAYER HAND</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -266,152 +291,4 @@ export function MainPage() {
     </Particles>
   );
 }
-
-
-interface DealerHandProps { cards: Card[] | undefined; hideDealerCard: boolean; }
-
-const DealerHand = ({ cards, hideDealerCard }: DealerHandProps) => {
-  if (!cards || cards.length === 0) return null;
-
-  const dealerCards = [...cards];
-  const firstCard = dealerCards.shift(); 
-
-  return (
-    <div className="flex flex-wrap justify-center gap-4 my-6 w-full">
-      {firstCard && (
-        hideDealerCard ? (
-          <PlayingCard key={firstCard.id} card={{...firstCard, suit: "", value: ""}} />
-        ) : (
-          <PlayingCard key={firstCard.id} card={firstCard} />
-        )
-      )}
-      {dealerCards.map((card) => (
-        <PlayingCard key={card.id} card={card} />
-      ))}
-    </div>
-  );
-};
-
-interface PlayerHandProps { cards: Card[] | undefined; }
-
-const PlayerHand = ({cards}: PlayerHandProps) => {
-  if (!cards || cards.length === 0) return;
-  
-  return (
-    <div className="flex flex-wrap justify-center gap-4 my-6 w-full">
-      {cards.map((card) => (
-        <PlayingCard key={card.id} card={card}/>
-      ))}
-    </div>
-  )
-}
-
-interface PlayingCardProps { card: Card; }
-
-const PlayingCard = ({card}: PlayingCardProps) => {
-  return (
-    <div className="hover-3d my-12 mx-2 cursor-pointer">
-      <div className="card w-50 h-70 bg-gray-900 text-white border-2 border-white bg-[radial-gradient(circle_at_bottom_left,#ffffff04_35%,transparent_36%),radial-gradient(circle_at_top_right,#ffffff04_35%,transparent_36%)] bg-size-[4.95em_4.95em]">
-        <div className="card-body">
-          <div className="flex mb-10">
-            <div className="font-bold text-3xl">{card.value}</div>
-          </div>
-          <div className="text-8xl text-center mb-4 opacity-70">{card.suit}</div>
-          <div className="flex justify-end mb-10">
-            <div className="font-bold text-3xl rotate-180">{card.value}</div>
-          </div>
-        </div>
-      </div>
-      {/* 8 empty divs needed for the 3D effect */}
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-      <div></div>
-    </div>
-  );
-}
-
-const CardsList = ({ cards }: { cards: Card[] }) => {
-  if (!cards?.length) return <div>No cards found.</div>;
-  return (
-    <div>
-      {cards.map((cards, index) => (
-        <div key={index}>
-          {cards.value} of {cards.suit} (Score: {cards.score}) Order: {cards.deckOrder}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function shuffle<Card>(cards: Card[]): Card[] {
-  // Fisher-Yates shuffle algorithm
-  const shuffled = [...cards];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-function calculateScore(cards: Card[]): number {
-  if (!cards) return 0;
-  let scoreTotal = 0;
-  let acesPresent = 0;
-  for (const card of cards) {
-    scoreTotal += card.score;
-    if (card.value === "A") acesPresent++;
-  }
-  for (let i: number = 0; i < acesPresent; i++) {
-    if (scoreTotal > 21) (scoreTotal = scoreTotal - 10);
-  }
-  return scoreTotal;
-}
-
-const initializeCards = async () => {
-  const tempCards: Card[] = [];
-  try {
-    for (const card of cardList) {
-      tempCards.push(await createCard({ suit: card.suit, value: card.value, score: card.score }));
-    }
-  } catch (error) {
-    console.error("Error creating card:", error);
-    alert("Failed to create card.");
-  }
-  return tempCards;
-}
-
-const initializeDecks = async (
-  shuffledCards: Card[],
-  setDrawDeckRef: React.Dispatch<React.SetStateAction<number>>,
-  setDiscardDeckRef: React.Dispatch<React.SetStateAction<number>>,
-  setPlayerDeckRef: React.Dispatch<React.SetStateAction<number>>,
-  setDealerDeckRef: React.Dispatch<React.SetStateAction<number>>,
-): Promise<{ drawId: number; discardId: number; playerId: number; dealerId: number }> => {
-  const tempDrawDeckRef = await createDeck({ name: "drawDeck", cards: shuffledCards });
-  setDrawDeckRef(tempDrawDeckRef.id);
-  const tempDiscardDeckRef = await createDeck({ name: "discardDeck", cards: [] });
-  setDiscardDeckRef(tempDiscardDeckRef.id);
-  const tempPlayerDeckRef = await createDeck({ name: "playerDeck", cards: [] });
-  setPlayerDeckRef(tempPlayerDeckRef.id);
-  const tempDealerDeckRef = await createDeck({ name: "dealerDeck", cards: [] });
-  setDealerDeckRef(tempDealerDeckRef.id);
-  // Shuffle cards in draw deck
-  const promises = shuffledCards.map((card, index) =>
-    updateCardDeckOrder({ id: card.id, deckOrder: index })
-  );
-  await Promise.all(promises);
-
-  return {
-    drawId: tempDrawDeckRef.id,
-    discardId: tempDiscardDeckRef.id,
-    playerId: tempPlayerDeckRef.id,
-    dealerId: tempDealerDeckRef.id
-  };
-}
-
 

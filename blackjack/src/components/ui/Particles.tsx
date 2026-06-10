@@ -66,7 +66,7 @@ function hexToRgb(hex: string): number[] {
 export const Particles = ({
   className,
   children,
-  quantity = 100,
+  quantity = 150,
   staticity = 50,
   ease = 50,
   size = 0.4,

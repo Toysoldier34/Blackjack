@@ -117,6 +117,46 @@ export function MainPage() {
     return { drawnCard: topCard, updatedDrawCards };
   };
 
+  const playerStay = () => runGameAction(async () => {
+    if (!playerDeck || !dealerDeck || !drawDeck) return;
+    setHideDealerCard(false);
+    // Check Dealer Score
+    let currentDealerCards = [...dealerDeck.cards];
+    let dealerScore = calculateScore(currentDealerCards);
+    let trackedDrawCards = [...drawDeck.cards];
+    // Dealer Hit if needed
+    while (dealerScore < 17) {
+      const { drawnCard, updatedDrawCards } = await drawToDeck(dealerDeck, trackedDrawCards, currentDealerCards.length);
+      if (!drawnCard) {
+        console.warn("Could not draw card");
+        break;
+      }
+      trackedDrawCards = updatedDrawCards;
+      currentDealerCards.push(drawnCard);
+      dealerScore = calculateScore(currentDealerCards);
+    }
+    // Calculate Winnings
+    const playerScore = calculateScore(playerDeck.cards)
+    if (playerScore > 21) {
+      // Player Loses
+      setWinnerText("Player Bust with a score of " + playerScore);
+    } else if (dealerScore > 21) {
+      // Player Wins
+      setWinnerText("Dealer Bust with a score of " + dealerScore);
+    } else if (playerScore > dealerScore) {
+      // Player Wins
+      setWinnerText("Player Wins with a score of " + playerScore);
+    } else if (dealerScore > playerScore) {
+      // Player Loses
+      setWinnerText("Dealer Wins with a score of " + dealerScore);
+    } else {
+      // Player Ties
+      setWinnerText("Push due to Tie");
+    }
+    // Handle End of Round
+    endRound();
+  });
+
   const restockDrawDeck = async (extraCards: Card[] = []): Promise<Card[]> => {
     if (!discardDeck || !drawDeck) return [];
     console.log("Restocking Draw Deck");
@@ -197,46 +237,6 @@ export function MainPage() {
       console.warn("Not enough cards in play to deal a new round, even after restocking.");
     }
   }
-
-  const playerStay = () => runGameAction(async () => {
-    if (!playerDeck || !dealerDeck || !drawDeck) return;
-    setHideDealerCard(false);
-    // Check Dealer Score
-    let currentDealerCards = [...dealerDeck.cards];
-    let dealerScore = calculateScore(currentDealerCards);
-    let trackedDrawCards = [...drawDeck.cards];
-    // Dealer Hit if needed
-    while (dealerScore < 17) {
-      const { drawnCard, updatedDrawCards } = await drawToDeck(dealerDeck, trackedDrawCards, currentDealerCards.length);
-      if (!drawnCard) {
-        console.warn("Could not draw card");
-        break;
-      }
-      trackedDrawCards = updatedDrawCards;
-      currentDealerCards.push(drawnCard);
-      dealerScore = calculateScore(currentDealerCards);
-    }
-    // Calculate Winnings
-    const playerScore = calculateScore(playerDeck.cards)
-    if (playerScore > 21) {
-      // Player Loses
-      setWinnerText("Player Bust with a score of " + playerScore);
-    } else if (dealerScore > 21) {
-      // Player Wins
-      setWinnerText("Dealer Bust with a score of " + dealerScore);
-    } else if (playerScore > dealerScore) {
-      // Player Wins
-      setWinnerText("Player Wins with a score of " + playerScore);
-    } else if (dealerScore > playerScore) {
-      // Player Loses
-      setWinnerText("Dealer Wins with a score of " + dealerScore);
-    } else {
-      // Player Ties
-      setWinnerText("Push due to Tie");
-    }
-    // Handle End of Round
-    endRound();
-  });
 
 
   return (
